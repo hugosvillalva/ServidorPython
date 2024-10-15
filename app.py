@@ -1,4 +1,5 @@
 from flask import Flask,request
+from database import obtener_Pin
 
 app = Flask(__name__)
 
@@ -16,6 +17,16 @@ def fecha_hora():
     print(f"Fecha recibida: {fecha}, Hora recibida: {hora}")
     
     return f"Datos recibidos: Fecha={fecha}, Hora={hora}"
+
+
+@app.route("/obtener-pin", methods=["GET"])
+def pin():
+    #Obtener Dispositivo para poder obtener usuario
+    dispositivo_id = request.args.get("dispositivo-id")
+    pin = obtener_Pin(dispositivo_id)  # Solo se obtiene el PIN
+
+
+    return pin
 
 
 if __name__ == '__main__':
