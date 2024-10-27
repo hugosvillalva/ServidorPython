@@ -5,12 +5,11 @@ import os  # Asegúrate de importar el módulo os
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
 from urllib.parse import unquote
+import json
 
 app = Flask(__name__)
 
 API_TOKEN = '7399497160:AAFnNp-3UsEBPHXj-AK3VYyF5C4BnvTDKYk'
-
-
 
 @app.route("/")
 def home():
@@ -39,13 +38,13 @@ def pin():
     # Obtener Dispositivo para poder obtener usuario
     dispositivo_id = request.args.get("device_id")
     print(dispositivo_id)
-    pinacomparar = request.args.get("password").strip()  # Eliminar espacios en blanco
+    pinacomparar = request.args.get("password")  # Eliminar espacios en blanco
     print(pinacomparar)
     
     pin = obtener_Pin(dispositivo_id)  # Obtener el PIN
     if isinstance(pin, int):  # Verificar si el PIN es un entero
         pin = str(pin)  # Convertir a string si es necesario
-    pin = pin.strip()  # Eliminar espacios en blanco
+    pin = pin  # Eliminar espacios en blanco
     print(pin)
 
     if pin == pinacomparar:
@@ -107,29 +106,11 @@ def enviar_comando_al_raspberry(chat_id):
     'chatid': chat_id  # El valor del chatid que quieres pasar
         }
         # Cambia 'httptu_ip_raspb://<erry>/comando' a la ruta correcta en tu Raspberry Pi
-        response = requests.get('http://192.168.1.20:5000/solicitar-foto', params=params )
+        response = requests.get('http://192.168.1.18:5000/solicitar-foto', params=params )
         return response.status_code == 200  # Retorna True si la respuesta es exitosa
     except Exception as e:
         print(f"Error al enviar comando al Raspberry Pi: {e}")
         return False
-
-def enviaraudio(telegram_id):
-    telegram_id = telegram_id  # Obtener el telegram_id del formulario
-
-
-    # Crear el teclado de respuesta
-    markup = InlineKeyboardMarkup()  # Cambié ColumKeyboardMarkup a InlineKeyboardMarkup
-    markup.row_width = 2
-
-    # Agregar 10 botones al teclado
-    for i in range(1, 11):
-        markup.add(InlineKeyboardButton(text=f"{i} - Audio", callback_data=f"audio_{i}"))
-
-    # Enviar el mensaje con el menú
-    send_telegram_message("¿Le gustaría respoder mediante un audio?", telegram_id, reply_markup=markup)
-    return "Notificación enviada con éxito.", 200  # Mensaje de éxito
-
-
 
 @app.route("/enviar-foto", methods=["POST"])
 def enviar_foto():
@@ -182,7 +163,34 @@ def enviar_foto_al_bot(ruta_foto, telegram_id):
 
 
 
+def enviaraudio(telegram_id):
+    # Obtener la lista de audios
+    audios = obtenerAudios()  # Llamar a la función para obtener los nombres de los audios
+
+    # Crear el teclado de respuesta
+    markup = InlineKeyboardMarkup()
+    markup.row_width = 2
+
+    # Agregar botones al teclado usando los nombres de los audios
+    for i, audio in enumerate(audios, start=1):
+        markup.add(InlineKeyboardButton(text=f"{i} - {audio}", callback_data=f"audio_{i}"))
+
+    markup.add(InlineKeyboardButton(text="No", callback_data="no"))
+    # Enviar el mensaje con el menú
+    send_telegram_message("¿Le gustaría responder mediante un audio?", telegram_id, reply_markup=markup)
+    return "Notificación enviada con éxito.", 200  # Mensaje de éxito
+
+def obtenerAudios():
+    # Simulando la respuesta que obtienes (deberías reemplazar esto con tu lógica real)
+    response = requests.get('http://192.168.1.18:5000/solicitarAudios')
+    
+    # Decodificar la respuesta y cargarla como JSON
+    data = json.loads(response.text)
+    
+    # Retornar solo los nombres de los audios sin la extensión .mp3
+    audios = data.get("audios", [])  # Devuelve la lista de audios o una lista vacía si no existe
+    return [audio.replace('.mp3', '') for audio in audios]  # Eliminar la extensión .mp3
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0') 
-
